@@ -1,0 +1,7 @@
+{
+  "description": "行者骑行数据合并工具",
+  "packOptions": { "ignore": [] },
+  "setting": { "urlCheck": false, "es6": true },
+  "miniprogramRoot": "./",
+  "projectname": "riding-merge"
+}

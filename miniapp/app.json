@@ -1,0 +1,7 @@
+{
+  "pages": ["pages/index/index"],
+  "window": {
+    "navigationBarTitleText": "骑行数据合并",
+    "navigationBarBackgroundColor": "#4A90D9"
+  }
+}
