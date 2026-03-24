@@ -1,5 +1,7 @@
 import fitparse
 import gpxpy
+from lxml import etree
+from datetime import datetime
 from io import BytesIO
 
 
@@ -12,7 +14,7 @@ def parse_fit_records(data: bytes) -> list:
             r[field.name] = field.value
         if r.get("timestamp"):
             records.append(r)
-    return sorted(records, key=lambda x: x["timestamp"])
+    return records  # no sort here — merge_records handles final sort
 
 
 def parse_gpx_records(data: bytes) -> list:
@@ -27,11 +29,10 @@ def parse_gpx_records(data: bytes) -> list:
                     "position_long": point.longitude,
                     "altitude": point.elevation,
                 })
-    return sorted(records, key=lambda x: x["timestamp"])
+    return records
 
 
 def parse_tcx_records(data: bytes) -> list:
-    from lxml import etree
     root = etree.fromstring(data)
     ns = {"tcx": "http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"}
     records = []
@@ -42,7 +43,6 @@ def parse_tcx_records(data: bytes) -> list:
         alt_el = trackpoint.find("tcx:AltitudeMeters", ns)
         hr_el = trackpoint.find(".//tcx:HeartRateBpm/tcx:Value", ns)
         if time_el is not None:
-            from datetime import datetime
             r = {"timestamp": datetime.fromisoformat(time_el.text.replace("Z", "+00:00"))}
             if lat_el is not None:
                 r["position_lat"] = float(lat_el.text)
@@ -53,19 +53,22 @@ def parse_tcx_records(data: bytes) -> list:
             if hr_el is not None:
                 r["heart_rate"] = int(hr_el.text)
             records.append(r)
-    return sorted(records, key=lambda x: x["timestamp"])
+    return records
 
 
 def merge_records(file_list: list[dict]) -> list:
     all_records = []
     for f in file_list:
         fmt = f.get("format", "fit")
+        data = f.get("data")
+        if not data:
+            continue
         if fmt == "fit":
-            all_records.extend(parse_fit_records(f["data"]))
+            all_records.extend(parse_fit_records(data))
         elif fmt == "gpx":
-            all_records.extend(parse_gpx_records(f["data"]))
+            all_records.extend(parse_gpx_records(data))
         elif fmt == "tcx":
-            all_records.extend(parse_tcx_records(f["data"]))
+            all_records.extend(parse_tcx_records(data))
     return sorted(all_records, key=lambda x: x["timestamp"])
 
 

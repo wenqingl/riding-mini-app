@@ -42,7 +42,7 @@
 
 | 接口 | 方法 | 入参 | 出参 | 约束 |
 |------|------|------|------|------|
-| POST /api/merge | POST | {files: [{data, format}], target_format} | 合并后的文件二进制流 | 按时间排序拼接 |
+| POST /api/merge | POST | {files: [{data, format}], format} | 合并后的文件二进制流 | 按时间排序拼接 |
 | POST /api/merge-and-upload | POST | {record_ids, access_token, format} | {success, new_record_id} | 合并+自动上传 |
 
 ### 组件 4: Upload Service（上传回行者）
