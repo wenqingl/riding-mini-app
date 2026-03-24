@@ -28,15 +28,27 @@ const api = {
   
   mergeDownload: (data, token) => {
     return new Promise((resolve, reject) => {
-      wx.downloadFile({
+      wx.request({
         url: `${BASE_URL}/api/merge`,
+        method: 'POST',
         header: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        data: JSON.stringify(data),
-        filePath: `${wx.env.USER_DATA_PATH}/merged.gpx`,
-        success: res => resolve(res),
+        data: data,
+        responseType: 'arraybuffer',
+        success: res => {
+          // 将 arraybuffer 保存为文件
+          const fs = wx.getFileSystemManager();
+          const filePath = `${wx.env.USER_DATA_PATH}/merged.gpx`;
+          fs.writeFile({
+            filePath,
+            data: res.data,
+            encoding: 'binary',
+            success: () => resolve({ filePath, statusCode: res.statusCode }),
+            fail: err => reject(err)
+          });
+        },
         fail: err => reject(err)
       });
     });
