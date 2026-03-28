@@ -14,7 +14,7 @@ def parse_fit_records(data: bytes) -> list:
             r[field.name] = field.value
         if r.get("timestamp"):
             records.append(r)
-    return records  # no sort here — merge_records handles final sort
+    return records
 
 
 def parse_gpx_records(data: bytes) -> list:
@@ -56,7 +56,121 @@ def parse_tcx_records(data: bytes) -> list:
     return records
 
 
+def stream_to_records(stream_data) -> list:
+    """将行者 stream 接口返回数据转为 record 列表。
+
+    行者 stream 接口可能返回的格式：
+    1. [{"lat": ..., "lon": ..., "ele": ..., "time": ...}, ...]
+    2. {"latitudes": [...], "longitudes": [...], "timestamps": [...]}
+    3. {"points": [{"lat": ..., ...}, ...]}
+    4. GPX/TCX/FIT 字节流
+
+    如果无法识别格式，抛出 ValueError。
+    """
+    # 格式 1: 直接是 list
+    if isinstance(stream_data, list):
+        return [_point_to_record(p) for p in stream_data if _is_valid_point(p)]
+
+    # 格式 4: 字节数据（GPX/TCX/FIT）
+    if isinstance(stream_data, bytes):
+        # 尝试 GPX
+        try:
+            return parse_gpx_records(stream_data)
+        except Exception:
+            pass
+        # 尝试 TCX
+        try:
+            return parse_tcx_records(stream_data)
+        except Exception:
+            pass
+        # 尝试 FIT
+        try:
+            return parse_fit_records(stream_data)
+        except Exception:
+            pass
+
+    # 格式 2/3: 是 dict
+    if isinstance(stream_data, dict):
+        # 格式 3: 有 points 键
+        if "points" in stream_data:
+            return [_point_to_record(p) for p in stream_data["points"] if _is_valid_point(p)]
+
+        # 格式 2: 并行数组
+        if "latitudes" in stream_data and "longitudes" in stream_data:
+            lats = stream_data["latitudes"]
+            lons = stream_data["longitudes"]
+            times = stream_data.get("timestamps", [])
+            alts = stream_data.get("altitudes", [])
+            records = []
+            for i in range(len(lats)):
+                r = {"position_lat": lats[i], "position_long": lons[i]}
+                if i < len(times):
+                    ts = times[i]
+                    if isinstance(ts, (int, float)):
+                        # unix ms → datetime
+                        from datetime import timezone
+                        r["timestamp"] = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
+                    else:
+                        r["timestamp"] = ts
+                if i < len(alts):
+                    r["altitude"] = alts[i]
+                records.append(r)
+            return records
+
+        # 其他 dict 格式，尝试递归找列表
+        for key, val in stream_data.items():
+            if isinstance(val, list) and len(val) > 0 and isinstance(val[0], dict):
+                return [_point_to_record(p) for p in val if _is_valid_point(p)]
+
+    raise ValueError(f"Cannot parse stream data format: {type(stream_data)}")
+
+
+def _is_valid_point(p: dict) -> bool:
+    """检查一个点是否有基本的经纬度。"""
+    if not isinstance(p, dict):
+        return False
+    lat = p.get("lat") or p.get("latitude") or p.get("position_lat")
+    lon = p.get("lon") or p.get("lng") or p.get("longitude") or p.get("position_long")
+    return lat is not None and lon is not None
+
+
+def _point_to_record(p: dict) -> dict:
+    """标准化一个 GPS 点为 record 格式。"""
+    r = {
+        "position_lat": p.get("lat") or p.get("latitude") or p.get("position_lat"),
+        "position_long": p.get("lon") or p.get("lng") or p.get("longitude") or p.get("position_long"),
+    }
+    if "ele" in p:
+        r["altitude"] = p["ele"]
+    elif "elevation" in p:
+        r["altitude"] = p["elevation"]
+    elif "altitude" in p:
+        r["altitude"] = p["altitude"]
+    elif "alt" in p:
+        r["altitude"] = p["alt"]
+
+    ts = p.get("time") or p.get("timestamp")
+    if ts is not None:
+        if isinstance(ts, (int, float)):
+            from datetime import timezone
+            # 毫秒还是秒？>1e12 认为是毫秒
+            if ts > 1e12:
+                r["timestamp"] = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
+            else:
+                r["timestamp"] = datetime.fromtimestamp(ts, tz=timezone.utc)
+        else:
+            r["timestamp"] = ts
+
+    if "heart_rate" in p:
+        r["heart_rate"] = p["heart_rate"]
+    if "hr" in p:
+        r["heart_rate"] = p["hr"]
+
+    return r
+
+
 def merge_records(file_list: list[dict]) -> list:
+    """合并多组 record 列表，按时间排序。"""
     all_records = []
     for f in file_list:
         fmt = f.get("format", "fit")
