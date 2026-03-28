@@ -5,6 +5,7 @@ python-fitparse>=1.2.0
 gpxpy>=1.6.0
 lxml>=4.9.0
 python-multipart>=0.0.18
+fit_tool>=0.9.0
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
 python-dotenv>=1.0.0
