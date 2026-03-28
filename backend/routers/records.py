@@ -1,13 +1,8 @@
 from fastapi import APIRouter, Header, HTTPException, Response
 from services.record_service import get_records, download_record_file
+from routers.utils import parse_token
 
 router = APIRouter()
-
-
-def parse_token(authorization: str) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid token")
-    return authorization.split(" ", 1)[1]
 
 
 @router.get("/records")

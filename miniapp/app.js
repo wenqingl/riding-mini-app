@@ -3,6 +3,6 @@ App({
     console.log('🚴 骑行数据合并工具启动');
   },
   globalData: {
-    baseUrl: 'https://your-domain.com'  // 替换为实际后端地址
+    baseUrl: 'https://8.213.216.253:8000'  // TODO: 替换为实际域名
   }
 })

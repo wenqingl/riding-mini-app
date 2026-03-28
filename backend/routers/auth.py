@@ -1,5 +1,3 @@
-import secrets
-
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import RedirectResponse
 

@@ -1,9 +1,9 @@
-const BASE_URL = 'https://your-domain.com';
+const getBaseUrl = () => getApp().globalData.baseUrl;
 
 const request = (url, options = {}) => {
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${BASE_URL}${url}`,
+      url: `${getBaseUrl()}${url}`,
       ...options,
       success: res => resolve(res.data),
       fail: err => reject(err)
@@ -29,7 +29,7 @@ const api = {
   mergeDownload: (data, token) => {
     return new Promise((resolve, reject) => {
       wx.request({
-        url: `${BASE_URL}/api/merge`,
+        url: `${getBaseUrl()}/api/merge`,
         method: 'POST',
         header: { 
           Authorization: `Bearer ${token}`,
@@ -57,7 +57,7 @@ const api = {
   getRecordFile: (recordId, format, token) => {
     return new Promise((resolve, reject) => {
       wx.downloadFile({
-        url: `${BASE_URL}/api/records/${recordId}/file?format=${format}`,
+        url: `${getBaseUrl()}/api/records/${recordId}/file?format=${format}`,
         header: { Authorization: `Bearer ${token}` },
         success: res => resolve(res),
         fail: err => reject(err)
