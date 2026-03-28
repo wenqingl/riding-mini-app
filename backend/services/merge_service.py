@@ -186,6 +186,85 @@ def merge_records(file_list: list[dict]) -> list:
     return sorted(all_records, key=lambda x: x["timestamp"])
 
 
+def records_to_fit(records: list, title: str = "合并骑行记录") -> bytes:
+    """将 record 列表转为 FIT 文件（供上传行者使用）。"""
+    from fit_tool.fit_file_builder import FitFileBuilder
+    from fit_tool.profile.messages.file_id_message import FileIdMessage
+    from fit_tool.profile.messages.event_message import EventMessage
+    from fit_tool.profile.messages.record_message import RecordMessage
+    from fit_tool.profile.profile_type import FileType, Manufacturer, Event, EventType
+    from datetime import timezone
+    import time as _time
+
+    if not records:
+        raise ValueError("No records to convert")
+
+    builder = FitFileBuilder(auto_define=True, min_string_size=50)
+
+    # File ID message
+    file_id = FileIdMessage()
+    file_id.type = FileType.ACTIVITY
+    file_id.manufacturer = Manufacturer.DEVELOPMENT.value
+    file_id.product = 0
+    file_id.time_created = int(records[0].get("timestamp", datetime.now()).timestamp() * 1000)
+    file_id.serial_number = 0x12345678
+    builder.add(file_id)
+
+    # Timer start event
+    start_event = EventMessage()
+    start_event.event = Event.TIMER
+    start_event.event_type = EventType.START
+    start_event.timestamp = file_id.time_created
+    builder.add(start_event)
+
+    # Record messages (GPS points)
+    distance = 0.0
+    prev_lat = None
+    prev_lon = None
+    for r in records:
+        msg = RecordMessage()
+        msg.position_lat = r.get("position_lat", 0)
+        msg.position_long = r.get("position_long", 0)
+
+        # Altitude: FIT stores as (altitude + 500) * 5
+        alt = r.get("altitude")
+        if alt is not None:
+            msg.enhanced_altitude = int(alt)
+
+        # Timestamp
+        ts = r.get("timestamp")
+        if isinstance(ts, datetime):
+            msg.timestamp = int(ts.timestamp() * 1000)
+        elif isinstance(ts, (int, float)):
+            msg.timestamp = int(ts) if ts > 1e12 else int(ts * 1000)
+        else:
+            msg.timestamp = file_id.time_created
+
+        # Cumulative distance
+        lat, lon = msg.position_lat, msg.position_long
+        if prev_lat is not None:
+            from math import radians, sin, cos, sqrt, atan2
+            R = 6371000  # earth radius in meters
+            dlat = radians(lat - prev_lat)
+            dlon = radians(lon - prev_lon)
+            a = sin(dlat / 2) ** 2 + cos(radians(prev_lat)) * cos(radians(lat)) * sin(dlon / 2) ** 2
+            distance += R * 2 * atan2(sqrt(a), sqrt(1 - a))
+        msg.distance = distance
+        prev_lat, prev_lon = lat, lon
+
+        builder.add(msg)
+
+    # Timer stop event
+    stop_event = EventMessage()
+    stop_event.event = Event.TIMER
+    stop_event.event_type = EventType.STOP
+    stop_event.timestamp = msg.timestamp if records else file_id.time_created
+    builder.add(stop_event)
+
+    fit_file = builder.build()
+    return fit_file.to_bytes()
+
+
 def records_to_gpx(records: list) -> bytes:
     import gpxpy.gpx
     gpx = gpxpy.gpx.GPX()

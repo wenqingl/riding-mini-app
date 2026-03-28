@@ -8,7 +8,7 @@ from typing import Optional
 
 from routers.utils import parse_token
 from services.record_service import get_activity_stream
-from services.merge_service import stream_to_records, merge_records, records_to_gpx
+from services.merge_service import stream_to_records, merge_records, records_to_gpx, records_to_fit
 from services.upload_service import upload_to_xingzhe
 
 router = APIRouter()
@@ -46,13 +46,9 @@ async def _download_and_merge(token: str, record_ids: list[int]) -> list:
 async def merge_and_upload(body: MergeRequest, authorization: str = Header(...)):
     token = parse_token(authorization)
     merged_records = await _download_and_merge(token, body.record_ids)
-    merged_gpx = records_to_gpx(merged_records)
 
     try:
-        # 行者上传只接受 FIT 格式，目前先传 GPX（需要后续转换）
-        # TODO: 实现 GPX → FIT 转换，或直接生成 FIT
-        fit_data = merged_gpx  # 占位，需要 FIT 转换
-        md5 = hashlib.md5(fit_data).hexdigest()
+        fit_data = records_to_fit(merged_records, title="合并骑行记录")
         result = await upload_to_xingzhe(token, fit_data, title="合并骑行记录")
         return {"success": True, "record_id": result.get("id"), "total_points": len(merged_records)}
     except Exception as e:
