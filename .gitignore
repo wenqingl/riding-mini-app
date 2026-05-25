@@ -5,3 +5,11 @@ __pycache__/
 dist/
 node_modules/
 .DS_Store
+
+# Flutter
+miniapp/build/
+miniapp/.dart_tool/
+miniapp/.flutter-plugins
+miniapp/.flutter-plugins-dependencies
+miniapp/android/.gradle/
+miniapp/android/local.properties

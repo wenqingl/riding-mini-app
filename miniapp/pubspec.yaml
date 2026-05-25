@@ -1,0 +1,30 @@
+name: xingzhe_merge
+description: 行者骑行数据合并工具
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # HTTP requests
+  http: ^1.2.0
+  # OAuth WebView
+  webview_flutter: ^4.4.2
+  # Local storage (token persistence)
+  shared_preferences: ^2.2.2
+  # File download & open
+  path_provider: ^2.1.2
+  open_filex: ^4.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
