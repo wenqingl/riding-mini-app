@@ -7,5 +7,6 @@ services:
     env_file:
       - .env
     environment:
+      - PORT=8000
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:8080}
     restart: unless-stopped
