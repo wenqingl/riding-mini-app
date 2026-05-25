@@ -13,3 +13,6 @@ miniapp/.flutter-plugins
 miniapp/.flutter-plugins-dependencies
 miniapp/android/.gradle/
 miniapp/android/local.properties
+miniapp/android/build/
+miniapp/android/.kotlin/
+miniapp/android/**/*.hprof
