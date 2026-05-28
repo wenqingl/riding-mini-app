@@ -14,8 +14,10 @@ class XingzheApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '行者骑行合并',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4A90D9)),
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF4A90D9)),
         useMaterial3: true,
       ),
       home: const AuthGate(),
@@ -42,29 +44,24 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _checkToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
     setState(() {
-      _token = token;
+      _token = prefs.getString('access_token');
       _loading = false;
     });
-  }
-
-  void _onLogin(String token) {
-    setState(() => _token = token);
-  }
-
-  void _onLogout() {
-    setState(() => _token = null);
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
     if (_token == null || _token!.isEmpty) {
-      return LoginPage(onLogin: _onLogin);
+      return LoginPage(onLogin: (token) => setState(() => _token = token));
     }
-    return RecordsPage(token: _token!, onLogout: _onLogout);
+    return RecordsPage(
+      token: _token!,
+      onLogout: () => setState(() => _token = null),
+    );
   }
 }

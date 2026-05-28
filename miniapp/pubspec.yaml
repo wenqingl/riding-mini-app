@@ -1,5 +1,5 @@
 name: xingzhe_merge
-description: 行者骑行数据合并工具
+description: 行者骑行数据合并工具 — 直连行者API，无需后端服务器
 
 publish_to: 'none'
 
@@ -17,8 +17,13 @@ dependencies:
   webview_flutter: ^4.4.2
   # Local storage (token persistence)
   shared_preferences: ^2.2.2
-  # File download & open
+  # FIT file parse + merge + export
+  activity_files: ^0.5.1
+  # MD5 for upload
+  crypto: ^3.0.3
+  # File save path
   path_provider: ^2.1.2
+  # Open downloaded file
   open_filex: ^4.3.4
 
 dev_dependencies:
